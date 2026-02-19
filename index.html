@@ -1524,11 +1524,11 @@
     }
 
     .testi-track-left {
-      animation: scrollLeft 38s linear infinite;
+      animation: scrollLeft 30s linear infinite;
     }
 
     .testi-track-right {
-      animation: scrollRight 42s linear infinite;
+      animation: scrollRight 30s linear infinite;
     }
 
     .testi-track:hover {
@@ -1541,13 +1541,13 @@
       }
 
       to {
-        transform: translateX(-150%);
+        transform: translateX(-50%);
       }
     }
 
     @keyframes scrollRight {
       from {
-        transform: translateX(-150%);
+        transform: translateX(-50%);
       }
 
       to {
@@ -2340,9 +2340,9 @@
               </div>
             </div>
           </div>
-
         </div>
       </div>
+
 
 
       <!-- Social proof bar -->
@@ -2701,6 +2701,127 @@
       entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
     }, { threshold: .08, rootMargin: '0px 0px -40px 0px' });
     reveals.forEach(el => obs.observe(el));
+  </script>
+  <style>
+    /* 1. Disable any CSS animations since JS will now handle smooth movement and dragging */
+    .testi-track-left,
+    .testi-track-right {
+      animation: none !important;
+      cursor: grab;
+      /* Shows a grab hand cursor */
+      /* Prevents text highlighting while dragging */
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    /* Show grabbing hand when actively dragging */
+    .testi-track:active {
+      cursor: grabbing !important;
+    }
+  </style>
+
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      const tracks = document.querySelectorAll('.testi-track');
+
+      tracks.forEach((track) => {
+        // 1. Automatically duplicate the HTML inside the tracks for the loop
+        track.innerHTML += track.innerHTML;
+
+        // 2. Setup variables for dragging and auto-scroll
+        let isDragging = false;
+        let isHovered = false;
+        let startX = 0;
+        let currentX = 0;
+        let animationID;
+
+        // Check if this is the right-scrolling track or left-scrolling track
+        const isRightScroll = track.classList.contains('testi-track-right');
+        const speed = isRightScroll ? 0.5 : -0.5; // Adjust speed here (0.5 pixels per frame)
+
+        // Calculate the halfway point (the width of the original set of cards)
+        let halfWidth = track.scrollWidth / 2;
+
+        // Recalculate on window resize just in case
+        window.addEventListener('resize', () => {
+          halfWidth = track.scrollWidth / 2;
+        });
+
+        // 3. The main animation loop
+        function animateLoop() {
+          // Only auto-move if we aren't dragging and aren't hovering
+          if (!isDragging && !isHovered) {
+            currentX += speed;
+          }
+
+          // The Infinity Loop Logic: 
+          // If we scroll past the halfway point, seamlessly snap back to 0
+          if (currentX <= -halfWidth) {
+            currentX += halfWidth;
+          } else if (currentX > 0) {
+            currentX -= halfWidth;
+          }
+
+          // Apply the movement
+          track.style.transform = `translateX(${currentX}px)`;
+          animationID = requestAnimationFrame(animateLoop);
+        }
+
+        // Start the auto-scroll
+        animationID = requestAnimationFrame(animateLoop);
+
+        // 4. Dragging Logic (Mouse & Touch)
+        function getPositionX(event) {
+          return event.type.includes('mouse') ? event.pageX : event.touches[0].clientX;
+        }
+
+        function touchStart(event) {
+          isDragging = true;
+          startX = getPositionX(event);
+          cancelAnimationFrame(animationID); // Stop auto-scroll
+        }
+
+        function touchMove(event) {
+          if (isDragging) {
+            const currentPosition = getPositionX(event);
+            const distance = currentPosition - startX;
+            currentX += distance;
+            startX = currentPosition; // Reset start position for the next frame
+
+            // Maintain infinity boundaries even while violently dragging
+            if (currentX <= -halfWidth) {
+              currentX += halfWidth;
+            } else if (currentX > 0) {
+              currentX -= halfWidth;
+            }
+
+            track.style.transform = `translateX(${currentX}px)`;
+          }
+        }
+
+        function touchEnd() {
+          isDragging = false;
+          animationID = requestAnimationFrame(animateLoop); // Resume auto-scroll
+        }
+
+        // Mouse Events for Desktop Desktop
+        track.addEventListener('mousedown', touchStart);
+        track.addEventListener('mousemove', touchMove);
+        track.addEventListener('mouseup', touchEnd);
+
+        // Hover events to pause auto-scroll
+        track.addEventListener('mouseenter', () => isHovered = true);
+        track.addEventListener('mouseleave', () => {
+          isHovered = false;
+          if (isDragging) touchEnd(); // Stop dragging if cursor leaves the track area
+        });
+
+        // Touch Events for Mobile Devices
+        track.addEventListener('touchstart', touchStart, { passive: true });
+        track.addEventListener('touchmove', touchMove, { passive: true });
+        track.addEventListener('touchend', touchEnd);
+      });
+    });
   </script>
 </body>
 
